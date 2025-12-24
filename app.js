@@ -2,7 +2,14 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const { createUsersTable } = require('./models/createTables');
+const { createTables } = require('./models/createTables');
+
+// 导入路由
+const authRoutes = require('./routes/auth');
+const recipeRoutes = require('./routes/recipe');
+const friendRoutes = require('./routes/friend');
+const reservationRoutes = require('./routes/reservation');
+const messageRoutes = require('./routes/message');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,9 +19,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 路由
+app.use('/api/auth', authRoutes);
+app.use('/api/recipes', recipeRoutes);
+app.use('/api/friends', friendRoutes);
+app.use('/api/reservations', reservationRoutes);
+app.use('/api/messages', messageRoutes);
+
 // 简单路由
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Welcome to my API',
     status: 'running',
     timestamp: new Date().toISOString()
@@ -23,22 +37,10 @@ app.get('/', (req, res) => {
 
 // 健康检查
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'healthy',
     timestamp: new Date().toISOString()
   });
-});
-
-// 用户路由示例
-app.get('/api/users', async (req, res) => {
-  try {
-    const pool = require('./config/database');
-    const [rows] = await pool.execute('SELECT id, username, email, created_at FROM users');
-    res.json({ users: rows });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Database error' });
-  }
 });
 
 // 404处理
@@ -56,8 +58,8 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     // 创建数据库表
-    await createUsersTable();
-    
+    await createTables();
+
     app.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);
       console.log(`🔗 http://localhost:${PORT}`);
