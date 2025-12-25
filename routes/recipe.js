@@ -33,6 +33,27 @@ router.post('/', async (req, res) => {
   }
 });
 
+// 获取所有菜谱
+router.get('/', async (req, res) => {
+  try {
+    const [recipes] = await pool.execute(
+      'SELECT r.*, u.nickName, u.avatarUrl FROM recipes r JOIN users u ON r.userId = u.id ORDER BY r.createdAt DESC'
+    );
+
+    // 解析JSON字段
+    const parsedRecipes = recipes.map(recipe => ({
+      ...recipe,
+      ingredients: JSON.parse(recipe.ingredients),
+      steps: JSON.parse(recipe.steps)
+    }));
+
+    res.json({ success: true, recipes: parsedRecipes });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ success: false, message: '数据库错误' });
+  }
+});
+
 // 获取用户的所有菜谱
 router.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
