@@ -58,10 +58,22 @@ pre_update_check() {
     fi
     
     # 检查服务是否正在运行
-    if pgrep -f "node.*app.js" > /dev/null; then
-        log "⚠️ 检测到服务正在运行"
+    if command -v pgrep > /dev/null 2>&1; then
+        # Linux/Mac系统
+        if pgrep -f "node.*app.js" > /dev/null 2>&1; then
+            log "⚠️ 检测到服务正在运行"
+        else
+            log "ℹ️ 服务未运行"
+        fi
+    elif command -v tasklist > /dev/null 2>&1; then
+        # Windows系统
+        if tasklist | grep -i "node" | grep -i "app.js" > /dev/null 2>&1; then
+            log "⚠️ 检测到服务正在运行"
+        else
+            log "ℹ️ 服务未运行"
+        fi
     else
-        log "ℹ️ 服务未运行"
+        log "ℹ️ 无法检测服务状态"
     fi
     
     log "✅ 预更新检查完成"
@@ -105,20 +117,49 @@ update_code() {
     cd "$PROJECT_DIR"
     
     # 停止服务
-    if pgrep -f "node.*app.js" > /dev/null; then
-        log "🛑 停止服务..."
-        pkill -f "node.*app.js" || log "⚠️ 服务停止可能失败"
-        sleep 2
+    if command -v pgrep > /dev/null 2>&1; then
+        # Linux/Mac系统
+        if pgrep -f "node.*app.js" > /dev/null 2>&1; then
+            log "🛑 停止服务..."
+            pkill -f "node.*app.js" || log "⚠️ 服务停止可能失败"
+            sleep 2
+        fi
+    elif command -v tasklist > /dev/null 2>&1; then
+        # Windows系统
+        if tasklist | grep -i "node" | grep -i "app.js" > /dev/null 2>&1; then
+            log "🛑 停止服务..."
+            taskkill /F /IM node.exe 2>/dev/null || log "⚠️ 服务停止可能失败"
+            sleep 2
+        fi
+    else
+        log "⚠️ 无法检测服务状态，请手动停止服务"
     fi
     
     # 检查是否提供了版本标签
     if [ -n "$VERSION" ]; then
         log "📋 更新到版本: $VERSION"
         git fetch origin || error_exit "Git fetch失败"
-        git checkout "$VERSION" || error_exit "Git checkout失败"
+        
+        # 检查标签是否存在
+        if git tag | grep -q "^${VERSION}$"; then
+            log "🏷️ 找到标签: $VERSION"
+            git checkout "$VERSION" || error_exit "Git checkout失败"
+        else
+            log "⚠️ 标签 $VERSION 不存在，检查分支..."
+            if git branch -a | grep -q "^.*${VERSION}$"; then
+                log "🌿 找到分支: $VERSION"
+                git checkout "$VERSION" || error_exit "Git checkout失败"
+            else
+                log "⚠️ 标签和分支 $VERSION 都不存在，使用main分支"
+                git checkout main || error_exit "Git checkout main失败"
+                git pull origin main || error_exit "Git pull失败"
+            fi
+        fi
     else
         log "📋 使用当前分支更新"
-        git pull origin "$(git branch --show-current)" || error_exit "Git pull失败"
+        CURRENT_BRANCH=$(git branch --show-current)
+        git fetch origin || error_exit "Git fetch失败"
+        git pull origin "$CURRENT_BRANCH" || error_exit "Git pull失败"
     fi
     
     # 安装依赖
