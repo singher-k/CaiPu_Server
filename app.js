@@ -29,6 +29,7 @@ app.use((req, res, next) => {
 
 // 路由
 app.use('/api/auth', authRoutes);
+app.use('/api/user', authRoutes); // 用户相关接口，指向auth路由
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/reservations', reservationRoutes);

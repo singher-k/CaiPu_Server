@@ -301,4 +301,110 @@ router.get('/user/:openid', async (req, res) => {
   }
 });
 
+// 更新用户信息
+router.post('/update', async (req, res) => {
+  console.log('=== 更新用户信息请求开始 ===');
+  console.log('请求体:', JSON.stringify(req.body));
+
+  try {
+    const { userId, nickName, avatarUrl } = req.body;
+
+    // 参数验证
+    if (!userId) {
+      console.log('❌ 错误: userId参数为空');
+      return res.status(400).json({
+        success: false,
+        message: '用户ID不能为空'
+      });
+    }
+
+    if (!nickName && !avatarUrl) {
+      console.log('❌ 错误: 没有提供要更新的信息');
+      return res.status(400).json({
+        success: false,
+        message: '请提供要更新的用户信息'
+      });
+    }
+
+    // 查找用户
+    const [users] = await pool.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      console.log('❌ 错误: 用户不存在');
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const user = users[0];
+    console.log('📋 找到用户:', user.id);
+
+    // 构建更新字段和值
+    const updateFields = [];
+    const updateValues = [];
+
+    if (nickName) {
+      updateFields.push('nickName = ?');
+      updateValues.push(nickName);
+    }
+
+    if (avatarUrl) {
+      updateFields.push('avatarUrl = ?');
+      updateValues.push(avatarUrl);
+    }
+
+    // 添加更新时间
+    updateFields.push('updatedAt = ?');
+    updateValues.push(new Date());
+
+    // 添加WHERE条件
+    updateValues.push(userId);
+
+    // 执行更新
+    const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+    console.log('📝 更新查询:', updateQuery);
+    console.log('📊 更新值:', updateValues);
+
+    await pool.execute(updateQuery, updateValues);
+
+    console.log('✅ 用户信息更新成功');
+
+    // 返回更新后的用户信息
+    const updatedUser = {
+      id: user.id,
+      openid: user.wxId,
+      nickName: nickName || user.nickName,
+      avatarUrl: avatarUrl || user.avatarUrl,
+      createdAt: user.createdAt
+    };
+
+    res.json({
+      success: true,
+      message: '用户信息更新成功',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('更新用户信息失败:', error);
+
+    // 数据库连接错误处理
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return res.status(503).json({
+        success: false,
+        message: '数据库连接超时，请稍后重试'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: '更新用户信息失败',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
