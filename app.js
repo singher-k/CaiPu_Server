@@ -19,6 +19,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 全局请求日志中间件
+app.use((req, res, next) => {
+  console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('请求头:', req.headers);
+  console.log('请求体:', req.body);
+  next();
+});
+
 // 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
@@ -56,18 +64,34 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 async function startServer() {
+  // 使用Promise.race设置超时机制
+  const createTablesWithTimeout = () => {
+    return Promise.race([
+      createTables(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('数据库连接超时 (ETIMEDOUT)')), 10000)
+      )
+    ]);
+  };
+
   try {
     // 创建数据库表
-    await createTables();
-
-    app.listen(PORT, () => {
-      console.log(`✅ Server is running on port ${PORT}`);
-      console.log(`🔗 http://localhost:${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    });
+    console.log('🔧 正在创建数据库表...');
+    await createTablesWithTimeout();
+    console.log('✅ 数据库表创建成功');
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.warn('⚠️ 数据库连接失败，继续启动服务器:', error.message);
+    // 记录具体的错误类型
+    if (error.code === 'ETIMEDOUT' || error.message.includes('超时')) {
+      console.warn('⚠️ 检测到数据库连接超时错误，服务器将在没有数据库连接的情况下启动');
+    }
   }
+
+  app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+    console.log(`🔗 http://localhost:${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  });
 }
 
 startServer();
