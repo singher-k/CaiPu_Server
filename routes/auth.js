@@ -304,10 +304,18 @@ router.get('/user/:openid', async (req, res) => {
 // 更新用户信息
 router.post('/update', async (req, res) => {
   console.log('=== 更新用户信息请求开始 ===');
-  console.log('请求体:', JSON.stringify(req.body));
+  console.log('请求URL:', req.method, req.url);
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('原始请求体类型:', typeof req.body);
+  console.log('原始请求体:', JSON.stringify(req.body, null, 2));
+  console.log('userId值:', req.body.userId, '类型:', typeof req.body.userId);
+  console.log('nickName值:', req.body.nickName, '类型:', typeof req.body.nickName);
+  console.log('avatarUrl值:', req.body.avatarUrl, '类型:', typeof req.body.avatarUrl);
 
   try {
     const { userId, nickName, avatarUrl } = req.body;
+
+    console.log('解析后的参数:', { userId, nickName, avatarUrl });
 
     // 参数验证
     if (!userId) {
