@@ -59,8 +59,17 @@ app.use((req, res) => {
 
 // 错误处理
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('=== 服务器错误 ===');
+  console.error('错误类型:', err.constructor.name);
+  console.error('错误消息:', err.message);
+  console.error('错误堆栈:', err.stack);
+  console.error('请求路径:', req.path);
+  console.error('请求方法:', req.method);
+  console.error('===================');
+  res.status(500).json({ 
+    error: '服务器内部错误',
+    message: err.message 
+  });
 });
 
 // 启动服务器
