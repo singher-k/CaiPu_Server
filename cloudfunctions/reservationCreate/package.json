@@ -1,0 +1,14 @@
+{
+  "name": "reservationCreate",
+  "version": "1.0.0",
+  "description": "发送预约请求",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

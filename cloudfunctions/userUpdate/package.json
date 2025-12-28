@@ -1,0 +1,12 @@
+{
+  "name": "userUpdate",
+  "description": "用户信息更新云函数",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}
